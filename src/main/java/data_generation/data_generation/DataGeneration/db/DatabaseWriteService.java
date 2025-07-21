@@ -88,13 +88,13 @@ public class DatabaseWriteService {
     public String insertProduct(Connection conn, String name, String desc, int stock, double price,
                           String brandName, String categoryName, String imgId) throws SQLException {
         // Step 1: Lookup brand_id
-        Integer brandId = getIdByName(conn, "brands", brandName);
+        String brandId = getIdByName(conn, "brands", brandName);
         if (brandId == null) {
             throw new SQLException("Brand not found: " + brandName);
         }
 
         // Step 2: Lookup category_id
-        Integer catId = getIdByName(conn, "categories", categoryName);
+        String catId = getIdByName(conn, "categories", categoryName);
         if (catId == null) {
             throw new SQLException("Category not found: " + categoryName);
         }
@@ -109,21 +109,21 @@ public class DatabaseWriteService {
             ps.setString(3, desc);
             ps.setInt(4, stock);
             ps.setDouble(5, price);
-            ps.setInt(6, brandId);
-            ps.setInt(7, catId);
+            ps.setString(6, brandId);
+            ps.setString(7, catId);
             ps.setString(8, imgId);
             ps.executeUpdate();
             return productId;
         }
     }
 
-    private Integer getIdByName(Connection conn, String table, String name) throws SQLException {
+    private String getIdByName(Connection conn, String table, String name) throws SQLException {
         String sql = "SELECT id FROM " + table + " WHERE name = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt("id");
+                    return rs.getString("id");
                 }
             }
         }
