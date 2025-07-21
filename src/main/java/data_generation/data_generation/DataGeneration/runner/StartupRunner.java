@@ -11,8 +11,13 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 
+import data_generation.data_generation.DataGeneration.db.CsvInvoiceReader;
 import data_generation.data_generation.DataGeneration.db.CsvProductReader;
+import data_generation.data_generation.DataGeneration.db.CsvUserReader;
+import data_generation.data_generation.DataGeneration.entity.Invoice;
+import data_generation.data_generation.DataGeneration.entity.InvoiceItem;
 import data_generation.data_generation.DataGeneration.entity.ProductCsvRecord;
+import data_generation.data_generation.DataGeneration.entity.User;
 import data_generation.data_generation.DataGeneration.image.FetchImageService;
 import data_generation.data_generation.DataGeneration.utils.TestDataHelper;
 
@@ -21,12 +26,16 @@ public class StartupRunner implements CommandLineRunner {
 
     private final TestDataHelper testDataHelper;
     private final CsvProductReader csvProductReader;
+    private final CsvUserReader csvUserReader;
+    private final CsvInvoiceReader csvInvoiceReader;
     private final FetchImageService fetchImageService;
     private final ConfigurableApplicationContext context;
 
-    public StartupRunner(TestDataHelper testDataHelper, CsvProductReader csvProductReader, FetchImageService fetchImageService, ConfigurableApplicationContext context) {
+    public StartupRunner(TestDataHelper testDataHelper, CsvProductReader csvProductReader, CsvUserReader csvUserReader, CsvInvoiceReader csvInvoiceReader, FetchImageService fetchImageService, ConfigurableApplicationContext context) {
         this.testDataHelper = testDataHelper;
         this.csvProductReader = csvProductReader;
+        this.csvUserReader = csvUserReader;
+        this.csvInvoiceReader = csvInvoiceReader;
         this.fetchImageService = fetchImageService;
         this.context = context;
     }
@@ -40,6 +49,18 @@ public class StartupRunner implements CommandLineRunner {
             Map<String, Integer> newBrandMap = testDataHelper.getNewBrandMap();
             List<Integer> newProductIds = testDataHelper.getNewProductIds();
             List<Integer> newImagesIds = testDataHelper.getNewImagesIds();
+            List<Integer> newUserIds = testDataHelper.getNewUserIds();
+            List<Integer> newInvoiceIds = testDataHelper.getNewInvoiceIds();
+            List<Integer> newInvoiceItemIds = testDataHelper.getNewInvoiceItemIds();
+
+            // Step 4: Insert users
+            List<User> users = csvUserReader.readUsersFromCsv("static/users/sample-users.csv");
+            for (User user : users) {
+                int userId = testDataHelper.getDatabaseWriteService().insertUser(conn, user);
+                testDataHelper.getNewUserIds().add(userId);
+                System.out.println("Inserted user: " + user.getFirstName() + " " + user.getLastName());
+                newUserIds.add(userId);
+            }
 
             // Step 1: Insert categories
             for (String category : testDataHelper.getNewCategories()) {
@@ -82,6 +103,26 @@ public class StartupRunner implements CommandLineRunner {
                 newProductIds.add(productId);
                 System.out.println("Inserted product: " + name);
                 cur++;
+            }
+
+            // Insert invoices
+            List<Invoice> invoices = csvInvoiceReader.readInvoices("static/invoices/sample-invoices.csv");
+            for (Invoice invoice : invoices) {
+                int userId = newUserIds.get(testDataHelper.getRandom().nextInt(newUserIds.size()));
+                invoice.setUserId(userId);
+                int invoiceId = testDataHelper.getDatabaseWriteService().insertInvoice(conn, invoice);
+                System.out.println("Inserted invoice: " + invoice.getInvoiceNumber() + " with ID: " + invoiceId);
+                newInvoiceIds.add(invoiceId);
+            }
+
+            // Insert invoice items
+            List<InvoiceItem> invoiceItems = csvInvoiceReader.readInvoiceItems("static/invoices/sample-invoice-items.csv");
+            for (InvoiceItem item : invoiceItems) {
+                item.setInvoiceId(newInvoiceIds.get(testDataHelper.getRandom().nextInt(newInvoiceIds.size())));
+                item.setProductId(newProductIds.get(testDataHelper.getRandom().nextInt(newProductIds.size())));
+                int itemId = testDataHelper.getDatabaseWriteService().insertInvoiceItem(conn, item);
+                System.out.println("Inserted invoice item for invoice ID: " + item.getInvoiceId());
+                newInvoiceItemIds.add(itemId);
             }
 
             System.out.println("[STARTUP] Data generation completed.");

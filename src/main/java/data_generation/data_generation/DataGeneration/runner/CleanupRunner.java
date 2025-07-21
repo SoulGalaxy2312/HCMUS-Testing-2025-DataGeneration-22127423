@@ -26,8 +26,29 @@ public class CleanupRunner {
 
             List<Integer> newProductIds = testDataHelper.getNewProductIds();
             List<Integer> newImagesIds = testDataHelper.getNewImagesIds();
+            List<Integer> newUserIds = testDataHelper.getNewUserIds();
+            List<Integer> newInvoiceIds = testDataHelper.getNewInvoiceIds();
+            List<Integer> newInvoiceItemIds = testDataHelper.getNewInvoiceItemIds();
             Map<String, Integer> newBrandMap = testDataHelper.getNewBrandMap();
             Map<String, Integer> newCategoryMap = testDataHelper.getNewCategoryMap();
+
+            // Delete invoices items
+            for (Integer invoiceItemId : newInvoiceItemIds) {
+                testDataHelper.getDatabaseWriteService().deleteInvoiceItem(conn, invoiceItemId);
+                System.out.println("Deleted invoice item with ID: " + invoiceItemId);
+            }
+
+            // Delete invoices
+            for (Integer invoiceId : newInvoiceIds) {
+                testDataHelper.getDatabaseWriteService().deleteInvoice(conn, invoiceId);
+                System.out.println("Deleted invoice with ID: " + invoiceId);
+            }
+
+            // Delete users
+            for (Integer userId : newUserIds) {
+                testDataHelper.getDatabaseWriteService().deleteUser(conn, userId);
+                System.out.println("Deleted user with ID: " + userId);
+            }
 
             // Delete products
             for (Integer productId : newProductIds) {
@@ -52,7 +73,7 @@ public class CleanupRunner {
                 testDataHelper.getDatabaseWriteService().deleteCategory(conn, categoryId);
                 System.out.println("Deleted category with ID: " + categoryId);
             }
-
+            
             System.out.println("[CLEANUP] Completed.");
         } catch (SQLException e) {
             System.err.println("Error during cleanup: " + e.getMessage());
